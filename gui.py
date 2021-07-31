@@ -139,16 +139,12 @@ class GiftWidget(QWidget):
         self.layout.addLayout(right_layout, 1)
 
         name_label = GiftLabel(self.gift.member, self, '#f4ebba')
-        name_label.setAlignment(QtCore.Qt.AlignCenter)
         gift_label = GiftLabel(f"{self.gift.gift} Lv. {self.gift.level}", self, colors.get(self.gift.level)[0])
-        gift_label.setAlignment(QtCore.Qt.AlignCenter)
         left_layout.addWidget(name_label)
         left_layout.addWidget(gift_label)
 
         date_label = GiftLabel(f'{self.gift.gift_timestamp:%d/%B/%Y}', self, '#ffffff')
-        date_label.setAlignment(QtCore.Qt.AlignCenter)
         time_label = GiftLabel(f'{self.gift.gift_timestamp:%H:%M:%S}', self, "#ffffff")
-        time_label.setAlignment(QtCore.Qt.AlignCenter)
         right_layout.addWidget(date_label)
         right_layout.addWidget(time_label)
 
@@ -220,7 +216,7 @@ class GiftLabel(QLabel):
         self.setStyleSheet(f"color: {color}")
         font = QFont("Segou UI", 14, 10)
         self.setFont(font)
-
+        self.setAlignment(QtCore.Qt.AlignCenter)
 
 
 
