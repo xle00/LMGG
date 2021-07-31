@@ -7,6 +7,7 @@ from PySide6.QtGui import QFont
 from lib import new_db
 import re
 from datetime import datetime
+import gifts_grabber
 
 
 colors = {1: ['#E9E0E0', 'Comum'], 2: ['#51E369', 'Incomum'], 3: ['#5CCFF5', 'Raro'],
@@ -42,6 +43,11 @@ class MainView(QWidget):
         self.gifts_frame_layout.setSpacing(1)
         frame_layout.addWidget(self.gifts_frame, 10)
         self.gifts_frame.setWidget(self.g_widget)
+
+        get_gifts = QPushButton('Pegar Presentes')
+        get_gifts.setStyleSheet("background-color: #00ffff")
+        frame_layout.addWidget(get_gifts)
+        get_gifts.clicked.connect(gifts_grabber.main)
 
 
     def create_members_widgets(self):
@@ -149,7 +155,6 @@ class GiftWidget(QWidget):
         right_layout.addWidget(time_label)
 
 
-
 class ReportView(QWidget):
     def __init__(self, *args):
         super(ReportView, self).__init__(*args)
@@ -160,7 +165,12 @@ class ConfigView(QWidget):
         super(ConfigView, self).__init__(*args)
 
 
-tab_buttons = {'Main': MainView, 'Relatórios': ReportView, "Configs": ConfigView}
+class FailsView(QWidget):
+    def __init__(self, *args):
+        super(FailsView, self).__init__(*args)
+
+
+tab_buttons = {'Main': MainView, 'Relatórios': ReportView, "Configs": ConfigView, "Falhas": FailsView}
 
 
 class GUI(QWidget):
