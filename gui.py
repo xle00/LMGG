@@ -223,7 +223,7 @@ class Layout:
 class GiftLabel(QLabel):
     def __init__(self, text, parent, color):
         super(GiftLabel, self).__init__(text, parent)
-        self.setStyleSheet(f"color: {color}")
+        self.setStyleSheet(f"color: red"}#{color}")
         font = QFont("Segou UI", 14, 10)
         self.setFont(font)
         self.setAlignment(QtCore.Qt.AlignCenter)
