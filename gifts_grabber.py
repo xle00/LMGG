@@ -48,8 +48,8 @@ screen_coords = {
 
 
 sct = mss()
-window = ProcessWindow('UnityWndClass', 'Lords Mobile')
-process = ProcessMemory('Lords Mobile.exe')
+# window = ProcessWindow('UnityWndClass', 'Lords Mobile')
+# process = ProcessMemory('Lords Mobile.exe')
 
 
 def get_game_resolution():
@@ -142,14 +142,11 @@ def get_gift_details(n, has_name):
     time = process.read_string(address, 8)
     # print(time)
     if not time:
-        date, time = '00/00/0000', '00:00:00'
+        return []
     else:
-        timestamp_now = get_value(clock_pointers)
-        timestamp = calculate_timestamp(timestamp_now, time)
-
-        date_time = datetime.datetime.fromtimestamp(timestamp)
-        # date = f'{date_time:%d/%m/%Y}'
-        # time = f'{date_time:%H:%M:%S}'
+        in_game_time = get_value(clock_pointers)
+        gift_timestamp = calculate_timestamp(in_game_time, time)
+        gift_date_time = datetime.datetime.fromtimestamp(gift_timestamp)
 
     # read the name
     offsets[3] += 5*8
@@ -205,7 +202,13 @@ def get_gift_details(n, has_name):
             else:
                 level = 0
 
-    return [date_time, level, monster, name, getting_type, configs['reset_time']]
+    year = gift_date_time.year
+    month = gift_date_time.month
+    day = gift_date_time.day
+    seconds = (gift_date_time.hour*60*60)+(gift_date_time.minute*60)+gift_date_time.second
+
+
+    return [year, month, day, seconds, level, monster, name, getting_type, configs['reset_time']]
 
 
 def get_pixel_brightness(coord):

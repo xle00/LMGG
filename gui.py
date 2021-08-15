@@ -12,6 +12,7 @@ import gifts_grabber
 
 colors = {1: ['#E9E0E0', 'Comum'], 2: ['#51E369', 'Incomum'], 3: ['#5CCFF5', 'Raro'],
           4: ['#C881FF', 'Épico'], 5: ['#F5D94F', 'Lendário'], 0: ['#c3e3e5', 'Unknown']}
+today = datetime.today()
 
 
 class MainView(QWidget):
@@ -26,14 +27,9 @@ class MainView(QWidget):
         self.name_label = QLabel(self)
         frame_layout.addWidget(self.name_label, 1)
 
-        self.year_frame_layout = Layout.horizontal(self)
-        frame_layout.addLayout(self.year_frame_layout, 1)
+        self.date_buttons = DateButtonsFrame(self)
+        frame_layout.addWidget(self.date_buttons)
 
-        self.month_frame_layout = Layout.horizontal(self)
-        frame_layout.addLayout(self.month_frame_layout, 1)
-
-        self.day_frame_layout = Layout.horizontal(self)
-        frame_layout.addLayout(self.day_frame_layout, 1)
 
         self.gifts_frame = QScrollArea(self)
         self.gifts_frame.setWidgetResizable(True)
@@ -48,7 +44,6 @@ class MainView(QWidget):
         get_gifts.setStyleSheet("background-color: #00ffff")
         frame_layout.addWidget(get_gifts)
         get_gifts.clicked.connect(gifts_grabber.main)
-
 
     def create_members_widgets(self):
         self.members_layout = Layout.vertical(self)
@@ -72,7 +67,14 @@ class MainView(QWidget):
         self.name_label.setText(name)
         dates = new_db.get_member_dates(name)
         self.fill_dates(dates)
-        gifts = new_db.get_gifts(name)
+        # gifts = new_db.get_gifts(name)
+        self.add_gifts()
+
+    def add_gifts(self):
+        name = self.member_list.selectedItems()[0].text()
+        gifts = new_db.get_gifts_by_date(name, self.date_buttons.selected_year, self.date_buttons.selected_month,
+                                         self.date_buttons.selected_day)
+        print(f'{self.date_buttons.selected_day}/{self.date_buttons.selected_month}/{self.date_buttons.selected_year}')
 
         self.clear_gifts()
         for gift in gifts:
@@ -84,38 +86,12 @@ class MainView(QWidget):
             self.gifts_frame_layout.itemAt(i).widget().setParent(None)
 
     def clear_dates(self):
-        for i in reversed(range(self.year_frame_layout.count())):
-            self.year_frame_layout.itemAt(i).widget().setParent(None)
-
-        for i in reversed(range(self.month_frame_layout.count())):
-            self.month_frame_layout.itemAt(i).widget().setParent(None)
-
-        for i in reversed(range(self.day_frame_layout.count())):
-            self.day_frame_layout.itemAt(i).widget().setParent(None)
+        self.date_buttons.clear()
 
     def fill_dates(self, dates):
-        self.clear_dates()
-
-        years = set(())
-        months = set(())
-        days = set(())
-        for date in dates:
-            d = date.gift_timestamp
-            years.add(d.year)
-            months.add(d.month)
-            days.add(d.day)
-
-        for year in years:
-            button = QPushButton(str(year), self)
-            self.year_frame_layout.addWidget(button)
-
-        for month in months:
-            button = QPushButton(str(month), self)
-            self.month_frame_layout.addWidget(button)
-
-        for day in days:
-            button = QPushButton(str(day), self)
-            self.day_frame_layout.addWidget(button)
+        self.date_buttons.clear()
+        self.date_buttons.add(dates)
+        self.date_buttons.set_closest_date()
 
     def update_list(self):
         pattern = self.members_searchbar.text().lower().strip()
@@ -125,6 +101,123 @@ class MainView(QWidget):
                 member_item = QListWidgetItem(member.name)
                 self.member_list.addItem(member_item)
         self.members_label.setText(f'Membros ({self.member_list.count()})')
+
+
+class DateButtonsFrame(QWidget):
+    def __init__(self, parent):
+        super(DateButtonsFrame, self).__init__(parent)
+
+        self.selected_year = None
+        self.selected_month = None
+        self.selected_day = None
+
+        layout = Layout.vertical(self)
+
+        self.year_frame_layout = Layout.horizontal(self)
+        self.year_frame_layout.setAlignment(QtCore.Qt.AlignLeft)
+        layout.addLayout(self.year_frame_layout, 1)
+
+        self.month_frame_layout = Layout.horizontal(self)
+        self.month_frame_layout.setAlignment(QtCore.Qt.AlignLeft)
+        layout.addLayout(self.month_frame_layout, 1)
+
+        self.day_frame_layout = Layout.horizontal(self)
+        self.day_frame_layout.setAlignment(QtCore.Qt.AlignLeft)
+        layout.addLayout(self.day_frame_layout, 1)
+
+    def clear(self):
+        for i in reversed(range(self.year_frame_layout.count())):
+            self.year_frame_layout.itemAt(i).widget().setParent(None)
+
+        for i in reversed(range(self.month_frame_layout.count())):
+            self.month_frame_layout.itemAt(i).widget().setParent(None)
+
+        for i in reversed(range(self.day_frame_layout.count())):
+            self.day_frame_layout.itemAt(i).widget().setParent(None)
+
+    def add(self, dates):
+        years = set(())
+        months = set(())
+        days = set(())
+        for date in dates:
+            # d = date.gift_timestamp
+            years.add(date.year)
+            months.add(date.month)
+            days.add(date.day)
+
+        for year in sorted(years):
+            button = DateButton(str(year), self, self.set_year)
+            # button = QPushButton(str(year), self)
+            # button.clicked.connect(self.test)
+            self.year_frame_layout.addWidget(button)
+
+        for month in sorted(months):
+            button = DateButton(str(month), self, self.set_month)
+            # button = QPushButton(str(month), self)
+            # button.clicked.connect(self.test)
+            self.month_frame_layout.addWidget(button)
+
+        for day in sorted(days):
+            button = DateButton(str(day), self, self.set_day)
+            # button = QPushButton(str(day), self)
+            # button.clicked.connect(self.test)
+            self.day_frame_layout.addWidget(button)
+
+    def set_year(self):
+        button = self.sender()
+        self.selected_year = button.text()
+        for i in range(self.year_frame_layout.count()):
+            other = self.year_frame_layout.itemAt(i).widget()
+            if button is other:
+                pass
+            else:
+                other.setChecked(False)
+        self.parent().add_gifts()
+
+    def set_month(self):
+        button = self.sender()
+        self.selected_month = button.text()
+        for i in range(self.month_frame_layout.count()):
+            other = self.month_frame_layout.itemAt(i).widget()
+            if button is other:
+                pass
+            else:
+                other.setChecked(False)
+        self.parent().add_gifts()
+
+    def set_day(self):
+        button = self.sender()
+        self.selected_day = button.text()
+        for i in range(self.day_frame_layout.count()):
+            other = self.day_frame_layout.itemAt(i).widget()
+            if button is other:
+                pass
+            else:
+                other.setChecked(False)
+        self.parent().add_gifts()
+
+
+    def repopulate(self):
+        pass
+
+    def set_closest_date(self):
+        last_year = self.year_frame_layout.count()-1
+        button = self.year_frame_layout.itemAt(last_year).widget()
+        button.click()
+        # button.setChecked(True)
+
+        last_month = self.month_frame_layout.count() - 1
+        self.month_frame_layout.itemAt(last_month).widget().click()
+
+        last_day = self.day_frame_layout.count() - 1
+        self.day_frame_layout.itemAt(last_day).widget().click()
+
+
+class DateButton(QPushButton):
+    def __init__(self, text, parent, callback):
+        super(DateButton, self).__init__(text, parent)
+        self.setCheckable(True)
+        self.clicked.connect(callback)
 
 
 class GiftWidget(QWidget):
@@ -149,8 +242,13 @@ class GiftWidget(QWidget):
         left_layout.addWidget(name_label)
         left_layout.addWidget(gift_label)
 
-        date_label = GiftLabel(f'{self.gift.gift_timestamp:%d/%B/%Y}', self, '#ffffff')
-        time_label = GiftLabel(f'{self.gift.gift_timestamp:%H:%M:%S}', self, "#ffffff")
+        hour = int(self.gift.seconds/60/60)
+        minute = int(self.gift.seconds/60 % 60)
+        second = self.gift.seconds % 60
+        timestamp = datetime(self.gift.year, self.gift.month, self.gift.day, hour, minute, second)
+
+        date_label = GiftLabel(f'{timestamp:%d/%B/%Y}', self, '#ffffff')
+        time_label = GiftLabel(f'{timestamp:%H:%M:%S}', self, "#ffffff")
         right_layout.addWidget(date_label)
         right_layout.addWidget(time_label)
 
@@ -223,7 +321,8 @@ class Layout:
 class GiftLabel(QLabel):
     def __init__(self, text, parent, color):
         super(GiftLabel, self).__init__(text, parent)
-        self.setStyleSheet(f"color: red"}#{color}")
+        # self.setStyleSheet("color: red")
+        self.setStyleSheet(f'color: {color}')
         font = QFont("Segou UI", 14, 10)
         self.setFont(font)
         self.setAlignment(QtCore.Qt.AlignCenter)

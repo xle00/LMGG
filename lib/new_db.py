@@ -1,8 +1,9 @@
-from sqlalchemy import create_engine, Column, Integer, ForeignKey, String, Boolean, DateTime, select
+from sqlalchemy import create_engine, Column, Integer, ForeignKey, String, Boolean, DateTime, select, extract
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.exc import IntegrityError
-from datetime import datetime
+from sqlalchemy.ext.hybrid import hybrid_property
+from datetime import datetime, timedelta
 import os
 
 Base = declarative_base()
@@ -23,7 +24,11 @@ class Member(Base):
 class Gifts(Base):
     __tablename__ = 'gifts'
     id = Column('id', Integer, primary_key=True)
-    gift_timestamp = Column('gift_timestamp', DateTime, nullable=False)
+    # gift_timestamp = Column('gift_timestamp', DateTime, nullable=False)
+    year = Column('year', Integer, nullable=False)
+    month = Column('month', Integer, nullable=False)
+    day = Column('day', Integer, nullable=False)
+    seconds = Column('seconds', Integer, nullable=False)
     gift = Column('gift', String(80), nullable=False)
     member = Column('member', String(12), nullable=False)
     level = Column('level', Integer, nullable=False)
@@ -53,16 +58,13 @@ def add_member(name):
         session.rollback()
 
 
-def add_gift(gift_data):
+def add_gift(gift_data, commit=True):
     gift = Gifts()
-    gift.gift_timestamp = gift_data[0]
-    gift.level = gift_data[1]
-    gift.gift = gift_data[2]
-    gift.member = gift_data[3]
-    gift._type = gift_data[4]
-    gift.reset_time = gift_data[5]
+    gift.year, gift.month, gift.day, gift.seconds, gift.level, gift.gift, gift.member, gift._type, gift.reset_time = \
+        gift_data
     session.add(gift)
-    session.commit()
+    if commit:
+        session.commit()
 
 
 def add_data(data):
@@ -76,8 +78,32 @@ def get_all_members():
 
 
 def get_member_dates(name):
-    return session.execute(select(Gifts.gift_timestamp).where(Gifts.member == name)).all()
+    return session.execute(select(Gifts.year, Gifts.month, Gifts.day).where(Gifts.member == name)).all()
 
 
 def get_gifts(name):
+    # return Gifts.query.filter(member=name)
     return session.query(Gifts).filter_by(member=name).all()
+
+
+def get_gifts_by_date(name, year, month, day):
+    result = []
+    try:
+        year = int(year)
+        month = int(month)
+        day = int(day)
+    except TypeError:
+        return result
+
+    day1 = datetime(int(year), int(month), int(day))
+    day2 = day1 + timedelta(days=1)
+    day1_data = session.query(Gifts).filter_by(member=name, year=year, month=month, day=day).all()
+    for gift in day1_data:
+        if gift.seconds > gift.reset_time:
+            result.append(gift)
+    day2_data = session.query(Gifts).filter_by(member=name, year=day2.year, month=day2.month, day=day2.day).all()
+    for gift in day2_data:
+        if gift.seconds < gift.reset_time:
+            result.append(gift)
+
+    return result

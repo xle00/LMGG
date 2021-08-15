@@ -114,3 +114,4 @@ dmypy.json
 
 # PyCharm IntelliJ
 .idea/
+dummy_data.py
